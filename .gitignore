@@ -1,0 +1,24 @@
+# Protect cloud secrets & keys
+.env
+.env.local
+backend/.env
+frontend/.env.local
+
+# Local data & vector stores
+data/
+qdrant_storage/
+backend/data/
+backend/qdrant_storage/
+
+# Python environment data
+__pycache__/
+*.pyc
+.venv/
+env/
+venv/
+
+# Frontend builds
+node_modules/
+.next/
+dist/
+.DS_Store

@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: contextiq-backend
+    env: python
+    buildCommand: "pip install -r requirements.txt && pip install rank-bm25"
+    startCommand: "python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: COHERE_API_KEY
+        sync: false
+      - key: QDRANT_URL
+        value: https://62272be4-801b-49db-b987-785e748eae4c.eu-central-1-0.aws.cloud.qdrant.io
+      - key: QDRANT_API_KEY
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIiwic3ViamVjdCI6ImFwaS1rZXk6M2M3YzYwZmItNjBkYS00N2Y1LWE1MGItNWI2ODA0YzRlYjM5In0.Cw0qxgcHZfhkjTK6VqWIjUAhMiCqCryy-yoyANfPUfQ
+      - key: TENANT_SALT_KEY
+        value: MySecretContextIq1Salt99!xYz_SuperSecure12345
