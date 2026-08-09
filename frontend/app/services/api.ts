@@ -1,4 +1,12 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+function getApiBaseUrl(): string {
+  let envUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+  envUrl = envUrl.trim();
+  if (envUrl.endsWith("/")) envUrl = envUrl.slice(0, -1);
+  if (!envUrl.includes("/api/v1")) envUrl += "/api/v1";
+  return envUrl;
+}
+
+const API_BASE_URL = getApiBaseUrl();
 
 export interface AuthUser {
   id: string;
@@ -55,17 +63,26 @@ export function clearAuthToken() {
   }
 }
 
+async function handleResponse(resp: Response) {
+  const contentType = resp.headers.get("content-type") || "";
+  if (!resp.ok) {
+    if (contentType.includes("application/json")) {
+      const err = await resp.json();
+      throw new Error(err.detail || "Request failed.");
+    } else {
+      throw new Error(`Backend server returned status ${resp.status}. If Render server was sleeping, please wait 30 seconds for warm up and try again.`);
+    }
+  }
+  return await resp.json();
+}
+
 export async function registerUser(name: string, email: string, password: string): Promise<{ access_token: string; user: AuthUser }> {
   const resp = await fetch(`${API_BASE_URL}/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name, email, password })
   });
-  if (!resp.ok) {
-    const err = await resp.json();
-    throw new Error(err.detail || "Registration failed.");
-  }
-  const data = await resp.json();
+  const data = await handleResponse(resp);
   setAuthToken(data.access_token);
   if (typeof window !== "undefined") {
     localStorage.setItem("contextiq_user", JSON.stringify(data.user));
@@ -79,11 +96,7 @@ export async function loginUser(email: string, password: string): Promise<{ acce
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password })
   });
-  if (!resp.ok) {
-    const err = await resp.json();
-    throw new Error(err.detail || "Invalid email or password.");
-  }
-  const data = await resp.json();
+  const data = await handleResponse(resp);
   setAuthToken(data.access_token);
   if (typeof window !== "undefined") {
     localStorage.setItem("contextiq_user", JSON.stringify(data.user));
@@ -117,12 +130,7 @@ export async function uploadPhysicalFile(file: File): Promise<{ status: string; 
     body: formData
   });
 
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.detail || "File extraction and indexing pipeline failed.");
-  }
-
-  return await response.json();
+  return await handleResponse(response);
 }
 
 export async function fetchUserFiles(): Promise<TrackedFile[]> {
@@ -174,12 +182,7 @@ export async function queryAgenticRag(prompt: string, targetFileName?: string): 
     })
   });
 
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.detail || "Agent loop failed to execute reasoning workflow.");
-  }
-
-  return await response.json();
+  return await handleResponse(response);
 }
 
 export async function streamAgenticRag(
@@ -204,7 +207,7 @@ export async function streamAgenticRag(
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error ${response.status}`);
+      throw new Error(`Backend returned status ${response.status}. Please check backend connection.`);
     }
 
     const reader = response.body?.getReader();
